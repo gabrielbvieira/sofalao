@@ -32,12 +32,11 @@
 </div>
 {% endif %}
 
-{% if board|length > 3 %}
+{% if board %}
 <table class="board">
   <thead><tr><th>#</th><th>Participante</th><th>⚽ Exatos</th><th>✓ Resultados</th><th>🥅 Pênaltis</th><th>⭐ Bônus</th><th>Total</th></tr></thead>
   <tbody>
     {% for r in board %}
-    {% if loop.index > 3 %}
     <tr class="{{ 'me' if r.name == user.name }}">
       <td class="rank-num">{{ loop.index }}</td>
       <td>{{ r.name }}</td>
@@ -47,7 +46,6 @@
       <td>{{ r.bonus }}</td>
       <td class="total">{{ r.points }}</td>
     </tr>
-    {% endif %}
     {% endfor %}
   </tbody>
 </table>

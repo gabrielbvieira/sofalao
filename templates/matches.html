@@ -5,6 +5,30 @@
   {% if last_sync %}<span class="sync-note">último sync: {{ last_sync[:16].replace('T',' ') }} UTC</span>{% endif %}
 </div>
 
+{% if missing_bonus and not bonus_locked %}
+<div class="bonus-alert" id="bonus-alert">
+  <span class="bonus-alert-icon">⚠️</span>
+  <span class="bonus-alert-text">
+    Ei, <b>{{ user.name }}</b>! Você ainda não escolheu
+    {% if missing_bonus | length == 2 %}
+      seu <b>campeão</b> nem seu <b>artilheiro</b>
+    {% else %}
+      seu <b>{{ missing_bonus[0] }}</b>
+    {% endif %}
+    — vale <b>até 20 pontos</b>!
+  </span>
+  <a href="{{ url_for('bonus') }}" class="bonus-alert-btn">Preencher agora →</a>
+  <button class="bonus-alert-close" onclick="document.getElementById('bonus-alert').remove()" aria-label="Fechar">✕</button>
+</div>
+{% endif %}
+
+{% if items | selectattr('locked', 'equalto', false) | list %}
+<div class="bulk-bar" id="bulk-bar" style="display:none" aria-live="polite">
+  <button type="button" id="btn-save-all" class="btn-primary" onclick="saveAll()">Salvar todos os palpites</button>
+  <span id="save-all-status" class="muted" style="font-size:.85rem"></span>
+</div>
+{% endif %}
+
 {% if not items %}
 <div class="empty">
   Nenhuma partida cadastrada ainda.
@@ -54,6 +78,7 @@
           {% if it.p and it.p.pen_winner %}<small class="muted">meu pên: {{ (it.m.home if it.p.pen_winner == 'HOME' else it.m.away) | team_badge }}</small>{% endif %}
         </span>
       </div>
+      <button class="btn-palpites" onclick="openPalpites({{ it.m.id }})">Palpites ▸</button>
     {% else %}
     <form method="post" action="{{ url_for('predict', match_id=it.m.id) }}" class="match-row">
       <span class="team home">{{ it.m.home | team_badge }}</span>
@@ -78,9 +103,152 @@
         <span class="result muted">Encerrado p/ palpites</span>
       {% endif %}
     </form>
+    <button class="btn-palpites" onclick="openPalpites({{ it.m.id }})">Palpites ▸</button>
     {% endif %}
   </article>
 {% endfor %}
+
+<!-- Modal de palpites da partida -->
+<div id="palpites-modal" class="modal-overlay" hidden onclick="if(event.target===this)closeModal()">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-header">
+      <h2 id="modal-title" class="modal-title"></h2>
+      <button class="modal-close" onclick="closeModal()" aria-label="Fechar">✕</button>
+    </div>
+    <div id="modal-body" class="modal-body"></div>
+  </div>
+</div>
+
+<script>
+function checkBulkBar() {
+  var bar = document.getElementById('bulk-bar');
+  if (!bar) return;
+  var forms = Array.from(document.querySelectorAll('form.match-row'));
+  var changed = forms.filter(function(f) {
+    if (f.querySelector('input[disabled]')) return false;
+    var h = f.querySelector('input[name="home_pred"]');
+    var a = f.querySelector('input[name="away_pred"]');
+    if (!h || !a || h.value === '' || a.value === '') return false;
+    return h.value !== h.dataset.original || a.value !== a.dataset.original;
+  });
+  bar.style.display = changed.length >= 2 ? 'flex' : 'none';
+}
+
+document.querySelectorAll('form.match-row input[type="number"]').forEach(function(el) {
+  el.dataset.original = el.value;
+  el.addEventListener('input', checkBulkBar);
+  el.addEventListener('change', checkBulkBar);
+});
+checkBulkBar();
+
+function saveAll() {
+  var forms = Array.from(document.querySelectorAll('form.match-row'));
+  var open = forms.filter(function(f) {
+    return !f.querySelector('input[disabled]');
+  });
+  if (!open.length) return;
+
+  var btn = document.getElementById('btn-save-all');
+  var status = document.getElementById('save-all-status');
+  btn.disabled = true;
+  status.textContent = 'Salvando…';
+
+  var promises = open.map(function(f) {
+    var home = f.querySelector('input[name="home_pred"]');
+    var away = f.querySelector('input[name="away_pred"]');
+    var pen  = f.querySelector('select[name="pen_winner"]');
+    if (!home || !away || home.value === '' || away.value === '') return Promise.resolve('skip');
+    var data = new FormData();
+    data.append('home_pred', home.value);
+    data.append('away_pred', away.value);
+    if (pen) data.append('pen_winner', pen.value);
+    return fetch(f.action, { method: 'POST', body: data, redirect: 'manual' })
+      .then(function(r) { return r.ok || r.type === 'opaqueredirect' ? 'ok' : 'err'; })
+      .catch(function() { return 'err'; });
+  });
+
+  Promise.all(promises).then(function(results) {
+    var saved = results.filter(function(r){ return r === 'ok'; }).length;
+    var skipped = results.filter(function(r){ return r === 'skip'; }).length;
+    var errors = results.filter(function(r){ return r === 'err'; }).length;
+    var msg = saved + ' palpite(s) salvo(s)';
+    if (skipped) msg += ', ' + skipped + ' sem placar';
+    if (errors)  msg += ', ' + errors + ' com erro';
+    status.textContent = msg;
+    if (saved > 0) setTimeout(function(){ location.reload(); }, 800);
+    else btn.disabled = false;
+  });
+}
+</script>
+
+<script>
+var PALPITES_URL = "{{ url_for('match_palpites', match_id=0) }}".replace('/0/palpites', '/');
+
+function openPalpites(matchId) {
+  var modal = document.getElementById('palpites-modal');
+  var body  = document.getElementById('modal-body');
+  var title = document.getElementById('modal-title');
+  title.textContent = 'Carregando…';
+  body.innerHTML = '<p class="hint">Buscando palpites…</p>';
+  modal.hidden = false;
+  document.body.style.overflow = 'hidden';
+
+  fetch(PALPITES_URL + matchId + '/palpites')
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      title.textContent = data.home + ' × ' + data.away;
+      if (!data.palpites.length) {
+        body.innerHTML = '<p class="hint">Nenhum palpite registrado ainda.</p>';
+        return;
+      }
+      var finished = data.status === 'FINISHED';
+      var real = finished ? (data.home_score + ' × ' + data.away_score) : null;
+      var html = '';
+      if (real) {
+        html += '<div class="modal-real">Resultado real: <b class="score-val real">' + real + '</b></div>';
+      }
+      html += '<ul class="modal-list">';
+      data.palpites.forEach(function(p) {
+        var placar = p.home + ' × ' + p.away;
+        var hit = '';
+        if (finished) {
+          var exact = p.home === data.home_score && p.away === data.away_score;
+          var homeWin = function(h, a){ return h > a; };
+          var resultOk = !exact && (
+            (homeWin(p.home, p.away) && homeWin(data.home_score, data.away_score)) ||
+            (homeWin(p.away, p.home) && homeWin(data.away_score, data.home_score)) ||
+            (p.home === p.away && data.home_score === data.away_score)
+          );
+          if (exact) hit = 'hit-exact';
+          else if (resultOk) hit = 'hit-result';
+          else hit = 'hit-miss';
+        }
+        html += '<li class="modal-item ' + hit + '">';
+        html += '<span class="modal-name">' + p.name + '</span>';
+        html += '<span class="modal-placar">' + placar + '</span>';
+        if (p.pen) {
+          var penLabel = p.pen === 'HOME' ? data.home : data.away;
+          html += '<span class="modal-pen muted">pên: ' + penLabel + '</span>';
+        }
+        html += '</li>';
+      });
+      html += '</ul>';
+      body.innerHTML = html;
+    })
+    .catch(function() {
+      body.innerHTML = '<p class="hint">Erro ao carregar palpites.</p>';
+    });
+}
+
+function closeModal() {
+  document.getElementById('palpites-modal').hidden = true;
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeModal();
+});
+</script>
 
 <script>
 (function () {

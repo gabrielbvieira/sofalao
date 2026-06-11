@@ -484,8 +484,16 @@ def matches():
             "pen_pts": penalty_points(p, m) if finished else 0,
         })
     last_sync = sync_mod.get_meta(db, "last_sync")
+    my_bonus = db.execute("SELECT * FROM bonus_picks WHERE user_id=?",
+                          (user["id"],)).fetchone()
+    missing_bonus = []
+    if not my_bonus or not my_bonus["champion"]:
+        missing_bonus.append("campeão")
+    if not my_bonus or not my_bonus["top_scorer"]:
+        missing_bonus.append("artilheiro")
     return render_template("matches.html", items=items, user=user,
-                           last_sync=last_sync)
+                           last_sync=last_sync, missing_bonus=missing_bonus,
+                           bonus_locked=tournament_started(db))
 
 
 @app.route("/predict/<int:match_id>", methods=["POST"])
@@ -579,6 +587,32 @@ def palpites():
         })
     return render_template("palpites.html", user=current_user(),
                            entries=entries)
+
+
+@app.route("/match/<int:match_id>/palpites")
+@login_required
+def match_palpites(match_id):
+    from flask import jsonify
+    db = get_db()
+    m = db.execute("SELECT * FROM matches WHERE id=?", (match_id,)).fetchone()
+    if not m:
+        return jsonify({"error": "not found"}), 404
+    rows = db.execute(
+        "SELECT u.name, p.home_pred, p.away_pred, p.pen_winner"
+        " FROM predictions p JOIN users u ON u.id = p.user_id"
+        " WHERE p.match_id=? ORDER BY u.name", (match_id,)).fetchall()
+    return jsonify({
+        "home": m["home"],
+        "away": m["away"],
+        "home_score": m["home_score"],
+        "away_score": m["away_score"],
+        "status": m["status"],
+        "palpites": [
+            {"name": r["name"], "home": r["home_pred"],
+             "away": r["away_pred"], "pen": r["pen_winner"]}
+            for r in rows
+        ]
+    })
 
 
 @app.route("/ranking")

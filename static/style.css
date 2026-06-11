@@ -149,6 +149,32 @@ button:hover { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--shado
 }
 .scorer-option:hover { background: var(--navy); color: var(--ink); }
 
+/* alerta bônus */
+.bonus-alert {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 12px 16px; margin-bottom: 20px;
+  background: #2a1a08; border: 2px solid var(--yellow);
+  animation: pulse-border 2s ease-in-out infinite;
+}
+@keyframes pulse-border {
+  0%, 100% { border-color: var(--yellow); }
+  50%       { border-color: var(--magenta); }
+}
+.bonus-alert-icon { font-size: 1.3rem; flex-shrink: 0; }
+.bonus-alert-text { flex: 1; font-size: .95rem; color: var(--ink); min-width: 180px; }
+.bonus-alert-btn {
+  padding: 6px 14px; background: var(--yellow); color: var(--button-ink);
+  font-weight: 700; text-decoration: none; font-size: .9rem; white-space: nowrap;
+  border: 2px solid var(--yellow); box-shadow: 3px 3px 0 var(--shadow);
+  transition: transform .06s, box-shadow .06s;
+}
+.bonus-alert-btn:hover { transform: translate(1px,1px); box-shadow: 2px 2px 0 var(--shadow); color: var(--button-ink); }
+.bonus-alert-close {
+  background: transparent; border: none; color: var(--muted); font-size: 1rem;
+  cursor: pointer; padding: 2px 4px; box-shadow: none; flex-shrink: 0;
+}
+.bonus-alert-close:hover { color: var(--ink); transform: none; box-shadow: none; }
+
 /* palpites */
 .palpite-card {
   border: 2px solid var(--line); background: var(--surface);
@@ -237,3 +263,59 @@ footer { text-align: center; color: var(--muted); font-size: .8rem; padding: 24p
 .pen { flex-direction: row; align-items: center; gap: 6px; font-size: .8rem; }
 .pen select { padding: 6px 8px; }
 .pts-pen { background: var(--magenta); color: var(--ink); }
+
+/* barra salvar todos — fixa acima do mascote */
+.bulk-bar {
+  position: fixed; right: 14px; bottom: 110px; z-index: 10;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
+}
+@media (max-width: 700px) { .bulk-bar { bottom: 86px; } }
+
+/* botão ver palpites */
+.btn-palpites {
+  margin-top: 8px; padding: 4px 10px; font-size: .78rem; font-weight: 700;
+  background: transparent; border: 1px solid var(--navy); color: var(--cyan);
+  cursor: pointer; box-shadow: none; letter-spacing: .03em;
+  transition: background .12s, color .12s;
+}
+.btn-palpites:hover { background: var(--navy); color: var(--ink); transform: none; box-shadow: none; }
+
+/* modal */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,.72); display: flex;
+  align-items: center; justify-content: center; padding: 16px;
+}
+.modal-overlay[hidden] { display: none; }
+.modal-box {
+  background: var(--surface); border: 2px solid var(--line);
+  width: 100%; max-width: 480px; max-height: 80vh;
+  display: flex; flex-direction: column;
+  box-shadow: 6px 6px 0 var(--shadow);
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 2px solid var(--line); gap: 12px;
+}
+.modal-title {
+  font-family: var(--display); font-size: 1rem; margin: 0; flex: 1;
+}
+.modal-close {
+  background: transparent; border: none; color: var(--muted); font-size: 1.1rem;
+  cursor: pointer; padding: 2px 6px; line-height: 1; box-shadow: none;
+}
+.modal-close:hover { color: var(--ink); transform: none; box-shadow: none; }
+.modal-body { overflow-y: auto; padding: 14px 18px; }
+.modal-real { margin-bottom: 12px; font-size: .9rem; color: var(--muted); }
+.modal-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.modal-item {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 8px 10px; background: var(--surface-2); border-left: 4px solid transparent;
+  font-size: .9rem;
+}
+.modal-item.hit-exact { border-left-color: var(--green); }
+.modal-item.hit-result { border-left-color: var(--cyan); }
+.modal-item.hit-miss   { border-left-color: var(--red); opacity: .7; }
+.modal-name { font-family: var(--display); font-size: .85rem; flex: 1; min-width: 80px; }
+.modal-placar { font-family: var(--display); font-size: 1rem; }
+.modal-pen { font-size: .78rem; }
