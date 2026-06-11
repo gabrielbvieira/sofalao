@@ -1,11 +1,9 @@
-"""Sync da Copa 2026 via football-data.org (competicao WC).
+"""Sync da Copa 2026.
 
-- Importa toda a tabela de jogos (fase de grupos + mata-mata).
-- Atualiza placares de jogos encerrados.
-- Descobre automaticamente os confrontos do mata-mata conforme a FIFA
-  os define (jogos "TBD" sao atualizados quando os times sao conhecidos).
+- football-data.org: estrutura de jogos (tabela, times, fases, elencos).
+- worldcup26.ir:     placares em tempo real (sem API key).
 
-Token gratuito: https://www.football-data.org/client/register
+Token football-data.org: https://www.football-data.org/client/register
 Defina a variavel de ambiente FOOTBALL_DATA_TOKEN.
 """
 import json
@@ -17,6 +15,7 @@ import requests
 
 API_URL = "https://api.football-data.org/v4/competitions/WC/matches"
 API_TEAMS_URL = "https://api.football-data.org/v4/competitions/WC/teams"
+WC26_GAMES_URL = "https://worldcup26.ir/get/games"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -213,11 +212,78 @@ def sync_now(db):
 
     players_msg = _sync_players_once(db, token)
 
+    _, scores_msg = sync_scores(db)
+
     set_meta(db, "last_sync",
              datetime.now(timezone.utc).isoformat(timespec="seconds"))
     db.commit()
     return True, (f"Sync ok: {created} partidas novas, "
-                  f"{updated} atualizadas.{players_msg}")
+                  f"{updated} atualizadas.{players_msg} {scores_msg}")
+
+
+import unicodedata
+
+
+def _normalize(name):
+    """Normaliza nome de time para comparação fuzzy."""
+    name = unicodedata.normalize("NFKD", name or "")
+    name = "".join(c for c in name if not unicodedata.combining(c))
+    return name.lower().replace("-", " ").strip()
+
+
+def _names_match(a, b):
+    na, nb = _normalize(a), _normalize(b)
+    return na == nb or na in nb or nb in na
+
+
+def sync_scores(db):
+    """Atualiza placares usando worldcup26.ir (tempo real, sem API key).
+
+    Faz match com as partidas do banco pelo nome dos times.
+    Retorna (atualizados, msg).
+    """
+    try:
+        resp = requests.get(WC26_GAMES_URL, timeout=15)
+        resp.raise_for_status()
+        games = resp.json()
+    except requests.RequestException as exc:
+        return 0, f"worldcup26.ir indisponivel: {exc}"
+
+    if not isinstance(games, list):
+        games = games.get("data", games.get("games", games.get("matches", [])))
+
+    db_matches = db.execute(
+        "SELECT id, home, away FROM matches"
+        " WHERE status != 'FINISHED' OR home_score IS NULL"
+    ).fetchall()
+
+    updated = 0
+    for g in games:
+        if g.get("finished") != "TRUE":
+            continue
+        hs = g.get("home_score")
+        as_ = g.get("away_score")
+        if hs is None or as_ is None:
+            continue
+        try:
+            hs, as_ = int(hs), int(as_)
+        except (ValueError, TypeError):
+            continue
+
+        g_home = g.get("home_team_name_en", "")
+        g_away = g.get("away_team_name_en", "")
+
+        for row in db_matches:
+            if _names_match(row["home"], g_home) and _names_match(row["away"], g_away):
+                db.execute(
+                    "UPDATE matches SET home_score=?, away_score=?, status='FINISHED'"
+                    " WHERE id=?", (hs, as_, row["id"]))
+                updated += 1
+                break
+
+    if updated:
+        db.commit()
+    return updated, f"{updated} placar(es) atualizado(s) via worldcup26.ir."
 
 
 if __name__ == "__main__":
