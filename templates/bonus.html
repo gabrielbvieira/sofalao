@@ -25,7 +25,7 @@
     <div id="scorer-dropdown" class="scorer-dropdown" hidden>
       {% for team, players in forwards.items() %}
       <div class="scorer-group" data-team="{{ team }}">
-        <div class="scorer-group-label">{{ team | team_label }}</div>
+        <div class="scorer-group-label">{{ team | team_badge }}</div>
         {% for pl in players %}
         <div class="scorer-option" data-value="{{ pl }}" data-team="{{ team }}">{{ pl }}</div>
         {% endfor %}

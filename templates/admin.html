@@ -60,7 +60,7 @@
   <form method="post" class="score-row">
     <input type="hidden" name="action" value="set_score">
     <input type="hidden" name="match_id" value="{{ m.id }}">
-    <span>{{ m.kickoff_utc | local_dt }} — {{ m.home | team_label }} × {{ m.away | team_label }}</span>
+    <span>{{ m.kickoff_utc | local_dt }} — {{ m.home | team_badge }} × {{ m.away | team_badge }}</span>
     <input type="number" name="home_score" min="0" max="99" value="{{ m.home_score if m.home_score != None }}" required>
     <input type="number" name="away_score" min="0" max="99" value="{{ m.away_score if m.away_score != None }}" required>
     {% if m.stage != 'GROUP_STAGE' %}

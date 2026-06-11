@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 
 from flask import (Flask, flash, g, redirect, render_template, request,
                    session, url_for)
+from markupsafe import Markup, escape
 from werkzeug.security import check_password_hash, generate_password_hash
 
 import sync as sync_mod
@@ -261,14 +262,6 @@ TEAM_FLAG_CODES = {
 }
 
 
-SPECIAL_TEAM_FLAGS = {
-    "england": "\U0001F3F4\U000E0067\U000E0062\U000E0065\U000E006E\U000E0067\U000E007F",
-    "inglaterra": "\U0001F3F4\U000E0067\U000E0062\U000E0065\U000E006E\U000E0067\U000E007F",
-    "escocia": "\U0001F3F4\U000E0067\U000E0062\U000E0073\U000E0063\U000E0074\U000E007F",
-    "scotland": "\U0001F3F4\U000E0067\U000E0062\U000E0073\U000E0063\U000E0074\U000E007F",
-}
-
-
 def _team_key(name):
     normalized = unicodedata.normalize("NFKD", name or "")
     ascii_name = "".join(ch for ch in normalized
@@ -276,25 +269,41 @@ def _team_key(name):
     return " ".join(ascii_name.lower().replace("-", " ").split())
 
 
-def flag_emoji(team_name):
-    key = _team_key(team_name)
-    special = SPECIAL_TEAM_FLAGS.get(key)
-    if special:
-        return special
-    code = TEAM_FLAG_CODES.get(key)
+def flag_code(team_name):
+    return (TEAM_FLAG_CODES.get(_team_key(team_name)) or "").lower()
+
+
+def flag_url(team_name):
+    code = flag_code(team_name)
     if not code:
         return ""
-    base = 0x1F1E6
-    return "".join(chr(base + ord(ch) - ord("A")) for ch in code.upper())
+    return f"https://flagcdn.com/w20/{code}.png"
 
 
 def team_label(team_name):
-    flag = flag_emoji(team_name)
-    return f"{flag} {team_name}" if flag else team_name
+    return team_name or ""
 
 
-app.jinja_env.filters["team_flag"] = flag_emoji
+def team_badge(team_name):
+    name = escape(team_name or "")
+    code = flag_code(team_name)
+    if not code:
+        return Markup(name)
+    alt = escape(f"Bandeira de {team_name}")
+    src = f"https://flagcdn.com/w20/{code}.png"
+    srcset = f"https://flagcdn.com/w40/{code}.png 2x"
+    return Markup(
+        f'<span class="team-badge">'
+        f'<img class="team-flag" src="{src}" srcset="{srcset}" '
+        f'width="20" height="15" alt="{alt}" loading="lazy">'
+        f'<span>{name}</span>'
+        f'</span>'
+    )
+
+
+app.jinja_env.filters["team_flag"] = flag_url
 app.jinja_env.filters["team_label"] = team_label
+app.jinja_env.filters["team_badge"] = team_badge
 
 
 @app.route("/healthz")

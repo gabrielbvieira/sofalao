@@ -33,7 +33,7 @@
     </div>
     {% if it.m.status == 'FINISHED' %}
       <div class="match-row">
-        <span class="team home">{{ it.m.home | team_label }}</span>
+        <span class="team home">{{ it.m.home | team_badge }}</span>
         <div class="scores-col">
           <div class="scores-row">
             <span class="score-label">Real</span>
@@ -46,23 +46,23 @@
             </span>
           </div>
         </div>
-        <span class="team away">{{ it.m.away | team_label }}</span>
+        <span class="team away">{{ it.m.away | team_badge }}</span>
         <span class="result">
           {% if it.pts != None %}<b class="pts pts-{{ it.pts }}">+{{ it.pts }}</b>{% endif %}
           {% if it.pen_pts %}<b class="pts pts-pen">+{{ it.pen_pts }} pên</b>{% endif %}
-          {% if it.m.pen_winner %}<small class="muted">(pên: {{ (it.m.home if it.m.pen_winner == 'HOME' else it.m.away) | team_label }})</small>{% endif %}
-          {% if it.p and it.p.pen_winner %}<small class="muted">meu pên: {{ (it.m.home if it.p.pen_winner == 'HOME' else it.m.away) | team_label }}</small>{% endif %}
+          {% if it.m.pen_winner %}<small class="muted">(pên: {{ (it.m.home if it.m.pen_winner == 'HOME' else it.m.away) | team_badge }})</small>{% endif %}
+          {% if it.p and it.p.pen_winner %}<small class="muted">meu pên: {{ (it.m.home if it.p.pen_winner == 'HOME' else it.m.away) | team_badge }}</small>{% endif %}
         </span>
       </div>
     {% else %}
     <form method="post" action="{{ url_for('predict', match_id=it.m.id) }}" class="match-row">
-      <span class="team home">{{ it.m.home | team_label }}</span>
+      <span class="team home">{{ it.m.home | team_badge }}</span>
       <input type="number" name="home_pred" min="0" max="99" required
              value="{{ it.p.home_pred if it.p != None }}" {{ 'disabled' if it.locked }}>
       <span class="x">×</span>
       <input type="number" name="away_pred" min="0" max="99" required
              value="{{ it.p.away_pred if it.p != None }}" {{ 'disabled' if it.locked }}>
-      <span class="team away">{{ it.m.away | team_label }}</span>
+      <span class="team away">{{ it.m.away | team_badge }}</span>
       {% if it.knockout %}
       <label class="pen">Pênaltis?
         <select name="pen_winner" {{ 'disabled' if it.locked }}>

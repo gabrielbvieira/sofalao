@@ -12,7 +12,7 @@
     <span class="palpite-name">{{ e.user.name }}</span>
     <span class="palpite-bonus">
       {% if e.champion %}
-        <span class="palpite-tag">{{ e.champion | team_label }}</span>
+        <span class="palpite-tag">{{ e.champion | team_badge }}</span>
       {% else %}
         <span class="palpite-tag muted">Campeão: —</span>
       {% endif %}
@@ -35,9 +35,9 @@
       <div class="palpite-match {% if m.status == 'FINISHED' %}finished{% endif %}">
         <span class="kick">{{ m.kickoff_utc | local_dt }}</span>
         <span class="palpite-placar">
-          {{ m.home | team_label }} <b>{{ p.home_pred }} × {{ p.away_pred }}</b> {{ m.away | team_label }}
+          {{ m.home | team_badge }} <b>{{ p.home_pred }} × {{ p.away_pred }}</b> {{ m.away | team_badge }}
           {% if p.pen_winner %}
-            <span class="muted">(pên: {{ m.home if p.pen_winner == 'HOME' else m.away }})</span>
+            <span class="muted">(pên: {{ (m.home if p.pen_winner == 'HOME' else m.away) | team_badge }})</span>
           {% endif %}
         </span>
         {% if m.status == 'FINISHED' %}
