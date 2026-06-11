@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="auth">
+  <img class="auth-mascot" src="{{ url_for('static', filename='mascote.png') }}" alt="E o bolão?">
+  <img class="auth-logo" src="{{ url_for('static', filename='logo.png') }}" alt="Sofa DGTL">
+  <h1>Bolão da Copa</h1>
+  <form method="post">
+    <label>Nome<input name="name" required autofocus></label>
+    <label>Senha<input type="password" name="password" required></label>
+    <button class="btn-primary" type="submit">Entrar</button>
+  </form>
+  <a class="btn-secondary" href="{{ url_for('register') }}">Cadastre-se</a>
+  <p class="hint" style="margin-top:16px;font-size:.85rem;">Esqueceu a senha? Peça ao admin do bolão para resetá-la.</p>
+</section>
+{% endblock %}

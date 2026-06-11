@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Palpites</h1>
+
+{% if not entries %}
+  <div class="empty">Nenhum participante ainda.</div>
+{% endif %}
+
+{% for e in entries %}
+<details class="palpite-card">
+  <summary class="palpite-summary">
+    <span class="palpite-name">{{ e.user.name }}</span>
+    <span class="palpite-bonus">
+      {% if e.champion %}
+        <span class="palpite-tag">{{ e.champion | team_label }}</span>
+      {% else %}
+        <span class="palpite-tag muted">Campeão: —</span>
+      {% endif %}
+      {% if e.top_scorer %}
+        <span class="palpite-tag">⚽ {{ e.top_scorer }}</span>
+      {% else %}
+        <span class="palpite-tag muted">Artilheiro: —</span>
+      {% endif %}
+    </span>
+    <span class="palpite-count muted">{{ e.predictions | length }} palpite{{ 's' if e.predictions | length != 1 }}</span>
+  </summary>
+
+  <div class="palpite-matches">
+    {% if not e.predictions %}
+      <p class="hint">Nenhum palpite de partida ainda.</p>
+    {% else %}
+      {% for item in e.predictions %}
+      {% set m = item.m %}
+      {% set p = item.p %}
+      <div class="palpite-match {% if m.status == 'FINISHED' %}finished{% endif %}">
+        <span class="kick">{{ m.kickoff_utc | local_dt }}</span>
+        <span class="palpite-placar">
+          {{ m.home | team_label }} <b>{{ p.home_pred }} × {{ p.away_pred }}</b> {{ m.away | team_label }}
+          {% if p.pen_winner %}
+            <span class="muted">(pên: {{ m.home if p.pen_winner == 'HOME' else m.away }})</span>
+          {% endif %}
+        </span>
+        {% if m.status == 'FINISHED' %}
+          <span class="muted">{{ m.home_score }} × {{ m.away_score }}</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+</details>
+{% endfor %}
+{% endblock %}

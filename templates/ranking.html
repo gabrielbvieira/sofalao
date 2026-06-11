@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Ranking</h1>
+<p class="hint">Placar exato = <b>{{ pts_exact }} pts</b> · acertou vencedor/empate = <b>{{ pts_result }} pt</b> · quem avança nos pênaltis = <b>{{ pts_pen }} pts</b> · bônus ao fim da Copa.</p>
+
+{% if board %}
+<div class="podium">
+  {% set medals = ['🥇','🥈','🥉'] %}
+
+  {% if board|length >= 2 %}
+  <div class="podium-slot second">
+    <div class="podium-name">{{ board[1].name }}</div>
+    <div class="podium-pts">{{ board[1].points }} pts</div>
+    <div class="podium-block">🥈</div>
+  </div>
+  {% endif %}
+
+  <div class="podium-slot first">
+    <div class="podium-crown">👑</div>
+    <div class="podium-name">{{ board[0].name }}</div>
+    <div class="podium-pts">{{ board[0].points }} pts</div>
+    <div class="podium-block">🥇</div>
+  </div>
+
+  {% if board|length >= 3 %}
+  <div class="podium-slot third">
+    <div class="podium-name">{{ board[2].name }}</div>
+    <div class="podium-pts">{{ board[2].points }} pts</div>
+    <div class="podium-block">🥉</div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if board|length > 3 %}
+<table class="board">
+  <thead><tr><th>#</th><th>Participante</th><th>⚽ Exatos</th><th>✓ Resultados</th><th>🥅 Pênaltis</th><th>⭐ Bônus</th><th>Total</th></tr></thead>
+  <tbody>
+    {% for r in board %}
+    {% if loop.index > 3 %}
+    <tr class="{{ 'me' if r.name == user.name }}">
+      <td class="rank-num">{{ loop.index }}</td>
+      <td>{{ r.name }}</td>
+      <td>{{ r.exact }}</td>
+      <td>{{ r.result }}</td>
+      <td>{{ r.pens }}</td>
+      <td>{{ r.bonus }}</td>
+      <td class="total">{{ r.points }}</td>
+    </tr>
+    {% endif %}
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if not board %}
+<div class="empty">Nenhum palpite registrado ainda — o ranking aparece assim que os jogos terminarem.</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Bônus</h1>
+<p class="hint">Campeão vale <b>{{ pts_champion }} pts</b> e artilheiro vale <b>{{ pts_scorer }} pts</b>. Os palpites travam 1 semana após o apito inicial da Copa.</p>
+
+{% if locked %}<div class="empty">Prazo encerrado — palpites bônus não são mais aceitos.</div>{% endif %}
+
+<form method="post" class="bonus-form" {{ 'inert' if locked }}>
+  <label>Campeão
+    <select name="champion" {{ 'disabled' if locked }}>
+      <option value="">— escolha —</option>
+      {% for t in teams %}
+      <option value="{{ t }}" {{ 'selected' if pick and pick.champion == t }}>{{ t | team_label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label>Artilheiro</label>
+  <div class="scorer-wrap">
+    <input id="scorer-search" type="text" placeholder="Digite para buscar..."
+      autocomplete="off" {{ 'disabled' if locked }}
+      value="{{ pick.top_scorer if pick and pick.top_scorer else '' }}">
+    <input type="hidden" name="top_scorer" id="scorer-value"
+      value="{{ pick.top_scorer if pick and pick.top_scorer else '' }}">
+    <div id="scorer-dropdown" class="scorer-dropdown" hidden>
+      {% for team, players in forwards.items() %}
+      <div class="scorer-group" data-team="{{ team }}">
+        <div class="scorer-group-label">{{ team | team_label }}</div>
+        {% for pl in players %}
+        <div class="scorer-option" data-value="{{ pl }}" data-team="{{ team }}">{{ pl }}</div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% if pick and pick.top_scorer %}<p class="hint">Seu palpite atual de artilheiro: <b>{{ pick.top_scorer }}</b></p>{% endif %}
+  {% if not locked %}<button class="btn-primary" type="submit">Salvar bônus</button>{% endif %}
+</form>
+
+{% if not locked %}
+<script>
+(function () {
+  const search = document.getElementById('scorer-search');
+  const hidden = document.getElementById('scorer-value');
+  const dropdown = document.getElementById('scorer-dropdown');
+  const groups = dropdown.querySelectorAll('.scorer-group');
+
+  function show() { dropdown.hidden = false; }
+  function hide() { setTimeout(() => { dropdown.hidden = true; }, 150); }
+
+  function filter(q) {
+    const term = q.trim().toLowerCase();
+    groups.forEach(g => {
+      let visible = 0;
+      g.querySelectorAll('.scorer-option').forEach(opt => {
+        const match = !term
+          || opt.dataset.value.toLowerCase().includes(term)
+          || opt.dataset.team.toLowerCase().includes(term);
+        opt.hidden = !match;
+        if (match) visible++;
+      });
+      g.hidden = visible === 0;
+    });
+  }
+
+  search.addEventListener('focus', () => { filter(search.value); show(); });
+  search.addEventListener('blur', hide);
+  search.addEventListener('input', () => { filter(search.value); show(); hidden.value = ''; });
+
+  dropdown.querySelectorAll('.scorer-option').forEach(opt => {
+    opt.addEventListener('mousedown', () => {
+      search.value = opt.dataset.value;
+      hidden.value = opt.dataset.value;
+      dropdown.hidden = true;
+    });
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

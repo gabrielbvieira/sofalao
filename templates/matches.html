@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <h1>Jogos</h1>
+  {% if last_sync %}<span class="sync-note">último sync: {{ last_sync[:16].replace('T',' ') }} UTC</span>{% endif %}
+</div>
+
+{% if not items %}
+<div class="empty">
+  Nenhuma partida cadastrada ainda.
+  {% if user.is_admin %}Vá em <a href="{{ url_for('admin') }}">Admin</a> e rode o sync (ou cadastre partidas manualmente).{% else %}Peça ao admin para sincronizar a tabela.{% endif %}
+</div>
+{% endif %}
+
+{% set ns = namespace(day='') %}
+{% for it in items %}
+  {% set day = it.m.kickoff_utc | local_dt %}
+  {% if day[:5] != ns.day %}{% set ns.day = day[:5] %}<h2 class="day">{{ ns.day }}</h2>{% endif %}
+  {% if not it.locked and it.m.status != 'FINISHED' %}
+    {% set pred_state = 'has-pred' if it.p else 'no-pred' %}
+  {% else %}
+    {% set pred_state = '' %}
+  {% endif %}
+  <article class="match {{ 'locked' if it.locked }} {{ 'in-play' if it.m.status in ('IN_PLAY','PAUSED') }} {{ pred_state }}">
+    <div class="match-meta">
+      <span class="tag">{{ it.m.group_name or it.m.stage }}</span>
+      <span class="kick">{{ it.m.kickoff_utc | local_dt }}</span>
+      {% if it.m.status in ('IN_PLAY', 'PAUSED') %}
+        <span class="live-badge">● AO VIVO</span>
+      {% elif not it.locked %}
+        <span class="countdown" data-kickoff="{{ it.m.kickoff_utc }}"></span>
+      {% endif %}
+    </div>
+    {% if it.m.status == 'FINISHED' %}
+      <div class="match-row">
+        <span class="team home">{{ it.m.home | team_label }}</span>
+        <div class="scores-col">
+          <div class="scores-row">
+            <span class="score-label">Real</span>
+            <span class="score-val real">{{ it.m.home_score }} × {{ it.m.away_score }}</span>
+          </div>
+          <div class="scores-row">
+            <span class="score-label">Meu</span>
+            <span class="score-val {% if it.p %}pred{% else %}muted{% endif %}">
+              {% if it.p %}{{ it.p.home_pred }} × {{ it.p.away_pred }}{% else %}—{% endif %}
+            </span>
+          </div>
+        </div>
+        <span class="team away">{{ it.m.away | team_label }}</span>
+        <span class="result">
+          {% if it.pts != None %}<b class="pts pts-{{ it.pts }}">+{{ it.pts }}</b>{% endif %}
+          {% if it.pen_pts %}<b class="pts pts-pen">+{{ it.pen_pts }} pên</b>{% endif %}
+          {% if it.m.pen_winner %}<small class="muted">(pên: {{ (it.m.home if it.m.pen_winner == 'HOME' else it.m.away) | team_label }})</small>{% endif %}
+          {% if it.p and it.p.pen_winner %}<small class="muted">meu pên: {{ (it.m.home if it.p.pen_winner == 'HOME' else it.m.away) | team_label }}</small>{% endif %}
+        </span>
+      </div>
+    {% else %}
+    <form method="post" action="{{ url_for('predict', match_id=it.m.id) }}" class="match-row">
+      <span class="team home">{{ it.m.home | team_label }}</span>
+      <input type="number" name="home_pred" min="0" max="99" required
+             value="{{ it.p.home_pred if it.p != None }}" {{ 'disabled' if it.locked }}>
+      <span class="x">×</span>
+      <input type="number" name="away_pred" min="0" max="99" required
+             value="{{ it.p.away_pred if it.p != None }}" {{ 'disabled' if it.locked }}>
+      <span class="team away">{{ it.m.away | team_label }}</span>
+      {% if it.knockout %}
+      <label class="pen">Pênaltis?
+        <select name="pen_winner" {{ 'disabled' if it.locked }}>
+          <option value="">—</option>
+          <option value="HOME" {{ 'selected' if it.p and it.p.pen_winner == 'HOME' }}>{{ it.m.home | team_label }}</option>
+          <option value="AWAY" {{ 'selected' if it.p and it.p.pen_winner == 'AWAY' }}>{{ it.m.away | team_label }}</option>
+        </select>
+      </label>
+      {% endif %}
+      {% if not it.locked %}
+        <button type="submit">Salvar</button>
+      {% else %}
+        <span class="result muted">Encerrado p/ palpites</span>
+      {% endif %}
+    </form>
+    {% endif %}
+  </article>
+{% endfor %}
+
+<script>
+(function () {
+  function fmt(ms) {
+    if (ms <= 0) return 'iniciando...';
+    var s = Math.floor(ms / 1000);
+    var m = Math.floor(s / 60); s = s % 60;
+    var h = Math.floor(m / 60); m = m % 60;
+    var d = Math.floor(h / 24); h = h % 24;
+    if (d > 0) return 'faltam ' + d + 'd ' + h + 'h';
+    if (h > 0) return 'faltam ' + h + 'h ' + pad(m) + 'min';
+    return 'faltam ' + m + 'min ' + pad(s) + 's';
+  }
+  function pad(n) { return n < 10 ? '0' + n : n; }
+
+  var els = document.querySelectorAll('.countdown[data-kickoff]');
+  if (!els.length) return;
+
+  function tick() {
+    var now = Date.now();
+    els.forEach(function (el) {
+      var kickoff = new Date(el.dataset.kickoff + 'Z').getTime();
+      el.textContent = fmt(kickoff - now);
+    });
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+</script>
+{% endblock %}

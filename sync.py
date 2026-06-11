@@ -1,0 +1,229 @@
+"""Sync da Copa 2026 via football-data.org (competicao WC).
+
+- Importa toda a tabela de jogos (fase de grupos + mata-mata).
+- Atualiza placares de jogos encerrados.
+- Descobre automaticamente os confrontos do mata-mata conforme a FIFA
+  os define (jogos "TBD" sao atualizados quando os times sao conhecidos).
+
+Token gratuito: https://www.football-data.org/client/register
+Defina a variavel de ambiente FOOTBALL_DATA_TOKEN.
+"""
+import json
+import os
+import sqlite3
+from datetime import datetime, timezone
+
+import requests
+
+API_URL = "https://api.football-data.org/v4/competitions/WC/matches"
+API_TEAMS_URL = "https://api.football-data.org/v4/competitions/WC/teams"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def load_local_env(path):
+    try:
+        with open(path, encoding="utf-8") as fh:
+            for raw in fh:
+                line = raw.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                os.environ.setdefault(key.strip(), value.strip().strip("'\""))
+    except OSError:
+        pass
+
+
+load_local_env(os.path.join(BASE_DIR, ".env"))
+
+STAGE_PT = {
+    "GROUP_STAGE": "Fase de grupos",
+    "LAST_32": "32 avos",
+    "ROUND_OF_32": "32 avos",
+    "LAST_16": "Oitavas",
+    "ROUND_OF_16": "Oitavas",
+    "QUARTER_FINALS": "Quartas",
+    "SEMI_FINALS": "Semifinal",
+    "THIRD_PLACE": "3o lugar",
+    "FINAL": "Final",
+}
+
+
+def api_token():
+    return os.environ.get("FOOTBALL_DATA_TOKEN", "").strip()
+
+
+# ----------------------------------------------------------------- meta kv
+def init_meta(db_path):
+    db = sqlite3.connect(db_path)
+    db.execute("CREATE TABLE IF NOT EXISTS meta"
+               " (key TEXT PRIMARY KEY, value TEXT)")
+    db.commit()
+    db.close()
+
+
+def get_meta(db, key):
+    row = db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
+    return row["value"] if row else None
+
+
+def set_meta(db, key, value):
+    db.execute("INSERT INTO meta (key, value) VALUES (?,?)"
+               " ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+               (key, value))
+
+
+# ----------------------------------------------------------------- data
+_ATTACKER_POSITIONS = {"Offence", "Midfield"}
+
+
+def fetch_scorers(db):
+    """Busca elencos da API e retorna {team_name: [player_name, ...]}."""
+    token = api_token()
+    if not token:
+        return _load_forwards_fallback(db)
+    try:
+        resp = requests.get(API_TEAMS_URL, headers={"X-Auth-Token": token},
+                            timeout=20)
+        resp.raise_for_status()
+        payload = resp.json()
+    except requests.RequestException:
+        return _load_forwards_fallback(db)
+
+    result = {}
+    for team in payload.get("teams", []):
+        name = team.get("name") or team.get("shortName", "")
+        players = [
+            p["name"] for p in (team.get("squad") or [])
+            if p.get("position") in _ATTACKER_POSITIONS
+        ]
+        if players:
+            result[name] = sorted(players)
+    return result
+
+
+def _load_forwards_fallback(db):
+    """Fallback: le forwards.json ou monta lista a partir dos times do banco."""
+    path = os.path.join(BASE_DIR, "forwards.json")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return json.load(fh)
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def load_forwards():
+    """Compatibilidade: retorna forwards.json sem banco (usado em contextos sem DB)."""
+    return _load_forwards_fallback(None)
+
+
+def known_teams(db):
+    """Selecoes conhecidas: as do banco + as do forwards.json."""
+    teams = {r["home"] for r in db.execute(
+        "SELECT DISTINCT home FROM matches WHERE home NOT LIKE '%definir%'")}
+    teams |= {r["away"] for r in db.execute(
+        "SELECT DISTINCT away FROM matches WHERE away NOT LIKE '%definir%'")}
+    teams |= set(load_forwards().keys())
+    return sorted(teams)
+
+
+# ----------------------------------------------------------------- sync
+def _sync_players_once(db, token):
+    """Popula a tabela players uma unica vez (pula se ja houver dados)."""
+    if db.execute("SELECT COUNT(*) FROM players").fetchone()[0] > 0:
+        return ""
+    try:
+        resp = requests.get(API_TEAMS_URL, headers={"X-Auth-Token": token},
+                            timeout=20)
+        resp.raise_for_status()
+        payload = resp.json()
+    except requests.RequestException as exc:
+        return f" (elencos: falha - {exc})"
+
+    count = 0
+    for team in payload.get("teams", []):
+        name = team.get("name") or team.get("shortName", "")
+        for p in (team.get("squad") or []):
+            if p.get("position") in _ATTACKER_POSITIONS:
+                try:
+                    db.execute("INSERT OR IGNORE INTO players (team, name) VALUES (?,?)",
+                               (name, p["name"]))
+                    count += 1
+                except Exception:
+                    pass
+    return f" {count} jogadores importados."
+
+
+def _team_name(side):
+    return (side or {}).get("name") or "A definir"
+
+
+def sync_now(db):
+    """Busca jogos na API e faz upsert por ext_id. Retorna (ok, mensagem)."""
+    token = api_token()
+    if not token:
+        return False, ("Sync indisponivel: defina FOOTBALL_DATA_TOKEN "
+                       "(token gratuito em football-data.org).")
+    try:
+        resp = requests.get(API_URL, headers={"X-Auth-Token": token},
+                            timeout=20)
+        resp.raise_for_status()
+        payload = resp.json()
+    except requests.RequestException as exc:
+        return False, f"Falha ao consultar a API: {exc}"
+
+    created = updated = 0
+    for m in payload.get("matches", []):
+        ext_id = str(m["id"])
+        kickoff = (datetime.fromisoformat(m["utcDate"].replace("Z", "+00:00"))
+                   .astimezone(timezone.utc)
+                   .isoformat(timespec="minutes").replace("+00:00", ""))
+        home = _team_name(m.get("homeTeam"))
+        away = _team_name(m.get("awayTeam"))
+        stage = m.get("stage") or "GROUP_STAGE"
+        group = m.get("group")
+        status = m.get("status") or "SCHEDULED"
+        score = m.get("score") or {}
+        ft = score.get("fullTime") or {}
+        hs, as_ = ft.get("home"), ft.get("away")
+        pen = None
+        if score.get("duration") == "PENALTY_SHOOTOUT":
+            pen = {"HOME_TEAM": "HOME", "AWAY_TEAM": "AWAY"}.get(
+                score.get("winner"))
+        if status != "FINISHED":
+            hs = as_ = pen = None
+
+        row = db.execute("SELECT id FROM matches WHERE ext_id=?",
+                         (ext_id,)).fetchone()
+        if row:
+            db.execute(
+                "UPDATE matches SET stage=?, group_name=?, home=?, away=?,"
+                " kickoff_utc=?, home_score=?, away_score=?, pen_winner=?,"
+                " status=? WHERE ext_id=?",
+                (stage, group, home, away, kickoff, hs, as_, pen, status,
+                 ext_id))
+            updated += 1
+        else:
+            db.execute(
+                "INSERT INTO matches (ext_id, stage, group_name, home, away,"
+                " kickoff_utc, home_score, away_score, pen_winner, status)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (ext_id, stage, group, home, away, kickoff, hs, as_, pen,
+                 status))
+            created += 1
+
+    players_msg = _sync_players_once(db, token)
+
+    set_meta(db, "last_sync",
+             datetime.now(timezone.utc).isoformat(timespec="seconds"))
+    db.commit()
+    return True, (f"Sync ok: {created} partidas novas, "
+                  f"{updated} atualizadas.{players_msg}")
+
+
+if __name__ == "__main__":
+    # uso: python sync.py  (sync manual via linha de comando)
+    init_meta(os.path.join(BASE_DIR, "sofalao.db"))
+    conn = sqlite3.connect(os.path.join(BASE_DIR, "sofalao.db"))
+    conn.row_factory = sqlite3.Row
+    ok, msg = sync_now(conn)
+    print(msg)

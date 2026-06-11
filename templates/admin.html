@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Admin</h1>
+
+<section class="panel">
+  <h2>Sincronização</h2>
+  {% if token_set %}
+    <p class="hint">Token configurado. Sync automático ativo. {% if last_sync %}Último: {{ last_sync[:16].replace('T',' ') }} UTC.{% endif %}</p>
+  {% else %}
+    <p class="hint warn">Defina a variável de ambiente <code>FOOTBALL_DATA_TOKEN</code> (token gratuito em football-data.org) para importar a tabela e o mata-mata automaticamente.</p>
+  {% endif %}
+  <form method="post"><input type="hidden" name="action" value="sync">
+    <button class="btn-primary" type="submit">Sincronizar agora</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Campeão / artilheiro oficiais (para o bônus)</h2>
+  <form method="post" class="grid-form">
+    <input type="hidden" name="action" value="set_meta">
+    <label>Campeão<input name="champion" value="{{ champion }}" placeholder="ex.: Brasil"></label>
+    <label>Artilheiro(s) — separe por ; se houver empate
+      <input name="top_scorers" value="{{ top_scorers }}" placeholder="ex.: Kylian Mbappe; Harry Kane"></label>
+    <button type="submit">Salvar</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Adicionar partida manualmente</h2>
+  <form method="post" class="grid-form">
+    <input type="hidden" name="action" value="add_match">
+    <label>Mandante<input name="home" required></label>
+    <label>Visitante<input name="away" required></label>
+    <label>Data/hora (Brasília)<input type="datetime-local" name="kickoff" required></label>
+    <label>Grupo/fase<input name="group_name" placeholder="Grupo A / Oitavas"></label>
+    <button type="submit">Adicionar</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Resetar senha de usuário</h2>
+  <form method="post" class="grid-form">
+    <input type="hidden" name="action" value="reset_password">
+    <label>Usuário
+      <select name="user_id" required>
+        <option value="">— escolha —</option>
+        {% for u in users %}
+        <option value="{{ u.id }}">{{ u.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Nova senha<input type="password" name="new_password" required minlength="4"></label>
+    <button type="submit">Resetar senha</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Registrar resultado manualmente</h2>
+  {% for m in matches %}
+  <form method="post" class="score-row">
+    <input type="hidden" name="action" value="set_score">
+    <input type="hidden" name="match_id" value="{{ m.id }}">
+    <span>{{ m.kickoff_utc | local_dt }} — {{ m.home | team_label }} × {{ m.away | team_label }}</span>
+    <input type="number" name="home_score" min="0" max="99" value="{{ m.home_score if m.home_score != None }}" required>
+    <input type="number" name="away_score" min="0" max="99" value="{{ m.away_score if m.away_score != None }}" required>
+    {% if m.stage != 'GROUP_STAGE' %}
+    <select name="pen_winner">
+      <option value="">sem pênaltis</option>
+      <option value="HOME" {{ 'selected' if m.pen_winner == 'HOME' }}>pên: {{ m.home | team_label }}</option>
+      <option value="AWAY" {{ 'selected' if m.pen_winner == 'AWAY' }}>pên: {{ m.away | team_label }}</option>
+    </select>
+    {% endif %}
+    <button type="submit">OK</button>
+  </form>
+  {% else %}<p class="hint">Nenhuma partida cadastrada.</p>{% endfor %}
+</section>
+{% endblock %}

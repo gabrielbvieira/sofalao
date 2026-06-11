@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="auth">
+  <img class="auth-mascot" src="{{ url_for('static', filename='mascote.png') }}" alt="E o bolão?">
+  <img class="auth-logo" src="{{ url_for('static', filename='logo.png') }}" alt="Sofa DGTL">
+  <h1>Criar conta</h1>
+  <form method="post">
+    <label>Nome<input name="name" required autofocus></label>
+    <label>Senha<input type="password" name="password" required></label>
+    <button class="btn-primary" type="submit">Cadastrar</button>
+  </form>
+  <a class="btn-secondary" href="{{ url_for('login') }}">Já tenho conta</a>
+</section>
+{% endblock %}

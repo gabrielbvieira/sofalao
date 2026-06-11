@@ -1,0 +1,240 @@
+{
+  "Brasil": [
+    "Vinicius Junior",
+    "Raphinha",
+    "Rodrygo",
+    "Endrick",
+    "Matheus Cunha",
+    "Igor Jesus",
+    "Luiz Henrique",
+    "Savinho",
+    "Gabriel Martinelli",
+    "Richarlison"
+  ],
+  "Argentina": [
+    "Lionel Messi",
+    "Julian Alvarez",
+    "Lautaro Martinez",
+    "Nico Gonzalez"
+  ],
+  "Franca": [
+    "Kylian Mbappe",
+    "Ousmane Dembele",
+    "Marcus Thuram",
+    "Bradley Barcola"
+  ],
+  "Inglaterra": [
+    "Harry Kane",
+    "Bukayo Saka",
+    "Phil Foden",
+    "Ollie Watkins"
+  ],
+  "Espanha": [
+    "Lamine Yamal",
+    "Nico Williams",
+    "Alvaro Morata",
+    "Mikel Oyarzabal"
+  ],
+  "Portugal": [
+    "Cristiano Ronaldo",
+    "Rafael Leao",
+    "Goncalo Ramos",
+    "Joao Felix"
+  ],
+  "Alemanha": [
+    "Kai Havertz",
+    "Niclas Fullkrug",
+    "Florian Wirtz",
+    "Leroy Sane"
+  ],
+  "Holanda": [
+    "Memphis Depay",
+    "Cody Gakpo",
+    "Xavi Simons",
+    "Donyell Malen"
+  ],
+  "Belgica": [
+    "Romelu Lukaku",
+    "Jeremy Doku",
+    "Lois Openda",
+    "Leandro Trossard"
+  ],
+  "Croacia": [
+    "Andrej Kramaric",
+    "Bruno Petkovic",
+    "Ivan Perisic"
+  ],
+  "Italia": [
+    "Mateo Retegui",
+    "Gianluca Scamacca",
+    "Federico Chiesa",
+    "Moise Kean"
+  ],
+  "Noruega": [
+    "Erling Haaland",
+    "Alexander Sorloth",
+    "Antonio Nusa"
+  ],
+  "Uruguai": [
+    "Darwin Nunez",
+    "Federico Valverde",
+    "Facundo Pellistri",
+    "Luis Suarez"
+  ],
+  "Colombia": [
+    "Luis Diaz",
+    "Jhon Duran",
+    "Rafael Santos Borre",
+    "Jhon Cordoba"
+  ],
+  "Equador": [
+    "Enner Valencia",
+    "Kevin Rodriguez",
+    "Kendry Paez"
+  ],
+  "Paraguai": [
+    "Miguel Almiron",
+    "Antonio Sanabria",
+    "Julio Enciso"
+  ],
+  "Estados Unidos": [
+    "Christian Pulisic",
+    "Folarin Balogun",
+    "Ricardo Pepi",
+    "Tim Weah"
+  ],
+  "Mexico": [
+    "Santiago Gimenez",
+    "Raul Jimenez",
+    "Hirving Lozano",
+    "Julian Quinones"
+  ],
+  "Canada": [
+    "Jonathan David",
+    "Cyle Larin",
+    "Tajon Buchanan"
+  ],
+  "Japao": [
+    "Kaoru Mitoma",
+    "Ayase Ueda",
+    "Takefusa Kubo",
+    "Koki Ogawa"
+  ],
+  "Coreia do Sul": [
+    "Son Heung-min",
+    "Cho Gue-sung",
+    "Hwang Hee-chan",
+    "Oh Hyeon-gyu"
+  ],
+  "Australia": [
+    "Mitchell Duke",
+    "Kusini Yengi",
+    "Craig Goodwin"
+  ],
+  "Ira": [
+    "Mehdi Taremi",
+    "Sardar Azmoun",
+    "Mohammad Mohebi"
+  ],
+  "Arabia Saudita": [
+    "Salem Al-Dawsari",
+    "Saleh Al-Shehri",
+    "Firas Al-Buraikan"
+  ],
+  "Catar": [
+    "Akram Afif",
+    "Almoez Ali"
+  ],
+  "Uzbequistao": [
+    "Eldor Shomurodov",
+    "Igor Sergeev"
+  ],
+  "Jordania": [
+    "Mousa Tamari",
+    "Yazan Al-Naimat",
+    "Ali Olwan"
+  ],
+  "Marrocos": [
+    "Youssef En-Nesyri",
+    "Brahim Diaz",
+    "Ayoub El Kaabi",
+    "Soufiane Rahimi"
+  ],
+  "Senegal": [
+    "Sadio Mane",
+    "Nicolas Jackson",
+    "Boulaye Dia",
+    "Iliman Ndiaye"
+  ],
+  "Egito": [
+    "Mohamed Salah",
+    "Omar Marmoush",
+    "Mostafa Mohamed"
+  ],
+  "Costa do Marfim": [
+    "Sebastien Haller",
+    "Simon Adingra",
+    "Jean-Philippe Krasso"
+  ],
+  "Gana": [
+    "Mohammed Kudus",
+    "Antoine Semenyo",
+    "Inaki Williams",
+    "Jordan Ayew"
+  ],
+  "Argelia": [
+    "Riyad Mahrez",
+    "Baghdad Bounedjah",
+    "Amine Gouiri",
+    "Mohamed Amoura"
+  ],
+  "Tunisia": [
+    "Hannibal Mejbri",
+    "Elias Achouri",
+    "Hazem Mastouri"
+  ],
+  "Africa do Sul": [
+    "Percy Tau",
+    "Lyle Foster",
+    "Themba Zwane"
+  ],
+  "Cabo Verde": [
+    "Ryan Mendes",
+    "Willy Semedo",
+    "Dailon Livramento"
+  ],
+  "Nova Zelandia": [
+    "Chris Wood",
+    "Kosta Barbarouses"
+  ],
+  "Panama": [
+    "Ismael Diaz",
+    "Cecilio Waterman",
+    "Jose Fajardo"
+  ],
+  "Haiti": [
+    "Duckens Nazon",
+    "Frantzdy Pierrot"
+  ],
+  "Curacao": [
+    "Jurien Gaari",
+    "Tahith Chong",
+    "Kenji Gorre"
+  ],
+  "Escocia": [
+    "Che Adams",
+    "Lyndon Dykes",
+    "Scott McTominay"
+  ],
+  "Austria": [
+    "Marko Arnautovic",
+    "Michael Gregoritsch",
+    "Marcel Sabitzer"
+  ],
+  "Suica": [
+    "Breel Embolo",
+    "Zeki Amdouni",
+    "Noah Okafor",
+    "Dan Ndoye"
+  ]
+}

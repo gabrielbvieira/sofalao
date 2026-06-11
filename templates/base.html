@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sofalão — Bolão da Copa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="icon" href="{{ url_for('static', filename='logo.png') }}">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="{{ url_for('matches') }}">
+    <img src="{{ url_for('static', filename='logo.png') }}" alt="Sofa DGTL">
+    <span>SOFALÃO</span>
+  </a>
+  {% if user %}
+  <nav>
+    <a href="{{ url_for('matches') }}">Jogos</a>
+    <a href="{{ url_for('bonus') }}">Bônus</a>
+    <a href="{{ url_for('palpites') }}">Palpites</a>
+    <a href="{{ url_for('ranking') }}">Ranking</a>
+    {% if user.is_admin %}<a href="{{ url_for('admin') }}">Admin</a>{% endif %}
+    <a class="muted" href="{{ url_for('logout') }}">Sair ({{ user.name }})</a>
+  </nav>
+  {% endif %}
+</header>
+<div class="colorbar" aria-hidden="true">
+  <i class="c1"></i><i class="c2"></i><i class="c3"></i><i class="c4"></i><i class="c5"></i><i class="c6"></i>
+</div>
+
+<main>
+  {% with msgs = get_flashed_messages() %}
+    {% for m in msgs %}<div class="flash">{{ m }}</div>{% endfor %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+
+{% if user %}
+<img class="mascot-corner" src="{{ url_for('static', filename='mascote.png') }}"
+     alt="E o bolão?" title="E o bolão?">
+{% endif %}
+<footer>Sofalão — Bolão da Sofa DGTL · Copa do Mundo 2026</footer>
+</body>
+</html>
