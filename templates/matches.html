@@ -36,8 +36,56 @@
 </div>
 {% endif %}
 
+{% set old_items = items | selectattr('old') | list %}
+{% set new_items = items | rejectattr('old') | list %}
+
+{% if old_items %}
+<details class="old-matches">
+  <summary class="old-matches-summary">
+    Jogos encerrados <span class="old-count">{{ old_items | length }}</span>
+  </summary>
+  <div class="old-matches-body">
+  {% set ns = namespace(day='') %}
+  {% for it in old_items %}
+    {% set day = it.m.kickoff_utc | local_dt %}
+    {% if day[:5] != ns.day %}{% set ns.day = day[:5] %}<h2 class="day">{{ ns.day }}</h2>{% endif %}
+    {% set pred_state = '' %}
+    <article class="match locked {{ 'in-play' if it.m.status in ('IN_PLAY','PAUSED') }} {{ pred_state }}">
+      {% if it.m.status == 'FINISHED' %}
+        <div class="match-meta">
+          <span class="tag">{{ it.m.group_name or it.m.stage }}</span>
+          <span class="kick">{{ it.m.kickoff_utc | local_dt }}</span>
+        </div>
+        <div class="match-row">
+          <span class="team home">{{ it.m.home | team_badge }}</span>
+          <div class="scores-col">
+            <div class="scores-row">
+              <span class="score-label">Real</span>
+              <span class="score-val real">{{ it.m.home_score }} × {{ it.m.away_score }}</span>
+            </div>
+            <div class="scores-row">
+              <span class="score-label">Meu</span>
+              <span class="score-val {% if it.p %}pred{% else %}muted{% endif %}">
+                {% if it.p %}{{ it.p.home_pred }} × {{ it.p.away_pred }}{% else %}—{% endif %}
+              </span>
+            </div>
+          </div>
+          <span class="team away">{{ it.m.away | team_badge }}</span>
+          <span class="result">
+            {% if it.pts != None %}<b class="pts pts-{{ it.pts }}">+{{ it.pts }}</b>{% endif %}
+            {% if it.pen_pts %}<b class="pts pts-pen">+{{ it.pen_pts }} pên</b>{% endif %}
+          </span>
+        </div>
+        <button class="btn-palpites" onclick="openPalpites({{ it.m.id }})">Palpites ▸</button>
+      {% endif %}
+    </article>
+  {% endfor %}
+  </div>
+</details>
+{% endif %}
+
 {% set ns = namespace(day='') %}
-{% for it in items %}
+{% for it in new_items %}
   {% set day = it.m.kickoff_utc | local_dt %}
   {% if day[:5] != ns.day %}{% set ns.day = day[:5] %}<h2 class="day">{{ ns.day }}</h2>{% endif %}
   {% if not it.locked and it.m.status != 'FINISHED' %}

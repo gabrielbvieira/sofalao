@@ -476,12 +476,16 @@ def matches():
     for m in rows:
         p = preds.get(m["id"])
         finished = p and m["status"] == "FINISHED"
+        yesterday = (now_utc().astimezone(TZ_LOCAL).date() - timedelta(days=1))
+        old = (m["status"] == "FINISHED" and
+               parse_utc(m["kickoff_utc"]).astimezone(TZ_LOCAL).date() < yesterday)
         items.append({
             "m": m, "p": p,
             "locked": match_locked(m),
             "knockout": m["stage"] != "GROUP_STAGE",
             "pts": match_points(p, m) if finished else None,
             "pen_pts": penalty_points(p, m) if finished else 0,
+            "old": old,
         })
     last_sync = sync_mod.get_meta(db, "last_sync")
     my_bonus = db.execute("SELECT * FROM bonus_picks WHERE user_id=?",
