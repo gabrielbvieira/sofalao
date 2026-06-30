@@ -278,7 +278,7 @@ def sync_scores(db):
             aps = g.get("away_penalty_score")
             if hps is not None and aps is not None:
                 hps, aps = int(hps), int(aps)
-                pen_winner = "home" if hps > aps else "away"
+                pen_winner = "HOME" if hps > aps else "AWAY"
         except (ValueError, TypeError):
             pass
 
