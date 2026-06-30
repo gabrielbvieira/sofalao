@@ -182,12 +182,14 @@ def sync_now(db):
         group = m.get("group")
         status = m.get("status") or "SCHEDULED"
         score = m.get("score") or {}
-        ft = score.get("fullTime") or {}
-        hs, as_ = ft.get("home"), ft.get("away")
         pen = None
         if score.get("duration") == "PENALTY_SHOOTOUT":
             pen = {"HOME_TEAM": "HOME", "AWAY_TEAM": "AWAY"}.get(
                 score.get("winner"))
+            ft = score.get("regularTime") or {}
+        else:
+            ft = score.get("fullTime") or {}
+        hs, as_ = ft.get("home"), ft.get("away")
         if status != "FINISHED":
             hs = as_ = pen = None
 
@@ -253,8 +255,8 @@ def sync_scores(db):
         games = games.get("data", games.get("games", games.get("matches", [])))
 
     db_matches = db.execute(
-        "SELECT id, home, away FROM matches"
-        " WHERE status != 'FINISHED' OR home_score IS NULL"
+        "SELECT id, home, away, status, home_score FROM matches"
+        " WHERE status != 'FINISHED' OR home_score IS NULL OR pen_winner IS NULL"
     ).fetchall()
 
     updated = 0
@@ -270,14 +272,34 @@ def sync_scores(db):
         except (ValueError, TypeError):
             continue
 
+        pen_winner = None
+        try:
+            hps = g.get("home_penalty_score")
+            aps = g.get("away_penalty_score")
+            if hps is not None and aps is not None:
+                hps, aps = int(hps), int(aps)
+                pen_winner = "home" if hps > aps else "away"
+        except (ValueError, TypeError):
+            pass
+
         g_home = g.get("home_team_name_en", "")
         g_away = g.get("away_team_name_en", "")
 
         for row in db_matches:
             if _names_match(row["home"], g_home) and _names_match(row["away"], g_away):
-                db.execute(
-                    "UPDATE matches SET home_score=?, away_score=?, status='FINISHED'"
-                    " WHERE id=?", (hs, as_, row["id"]))
+                already_finished = (row["status"] == "FINISHED"
+                                    and row["home_score"] is not None)
+                if already_finished and pen_winner is None:
+                    break
+                if already_finished:
+                    db.execute(
+                        "UPDATE matches SET pen_winner=? WHERE id=? AND pen_winner IS NULL",
+                        (pen_winner, row["id"]))
+                else:
+                    db.execute(
+                        "UPDATE matches SET home_score=?, away_score=?, pen_winner=?,"
+                        " status='FINISHED' WHERE id=?",
+                        (hs, as_, pen_winner, row["id"]))
                 updated += 1
                 break
 
